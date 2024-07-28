@@ -1,0 +1,6 @@
+[submodule "TJF-B"]
+	path = TJF-B
+	url = https://github.com/agure1996/TJF-B.git
+[submodule "TJF-F"]
+	path = TJF-F
+	url = https://github.com/agure1996/TJF-F.git

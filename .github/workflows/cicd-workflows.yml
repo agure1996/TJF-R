@@ -1,0 +1,85 @@
+name: CICD for Backend and Frontend
+
+on:
+  push:
+    branches:
+      - cicd-docker-ec2
+
+jobs:
+  build-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v3
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+      
+      - name: Login to Docker Hub
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+      
+      - name: Build backend Docker image
+        run: docker build -t agure1996/tjf-b ./backend
+
+      - name: Push backend Docker image to Docker Hub
+        run: docker push agure1996/tjf-b:latest
+
+  build-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v3
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+      
+      - name: Login to Docker Hub
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+      
+      - name: Build frontend Docker image
+        run: docker build -t agure1996/tjf-f ./frontend
+
+      - name: Push frontend Docker image to Docker Hub
+        run: docker push agure1996/tjf-f:latest
+
+  deploy-backend:
+    needs: build-backend
+    runs-on: self-hosted
+    steps:
+      - name: Login to Docker Hub
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+      
+      - name: Pull backend Docker image
+        run: docker pull agure1996/tjf-b:latest
+      
+      - name: Stop and remove old backend container
+        run: |
+          docker stop tjf-b || true
+          docker rm tjf-b || true
+      
+      - name: Run new backend container
+        run: |
+          docker run -d --name tjf-b -p 5000:5000 agure1996/tjf-b:latest
+
+  deploy-frontend:
+    needs: build-frontend
+    runs-on: self-hosted
+    steps:
+      - name: Login to Docker Hub
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+      
+      - name: Pull frontend Docker image
+        run: docker pull agure1996/tjf-f:latest
+      
+      - name: Stop and remove old frontend container
+        run: |
+          docker stop tjf-f || true
+          docker rm tjf-f || true
+      
+      - name: Run new frontend container
+        run: |
+          docker run -d --name tjf-f -p 5173:5173 agure1996/tjf-f:latest
